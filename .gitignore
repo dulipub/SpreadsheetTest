@@ -400,3 +400,4 @@ FodyWeavers.xsd
 # Secrets files
 *.secrets.json
 *.env
+/SpreadsheetTest/appsettings.local.json
