@@ -17,8 +17,6 @@ builder.Configuration.SetBasePath(builder.Environment.ContentRootPath)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-SetEnvironment.Load();
-
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -38,18 +36,36 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<SecurityRequirementsOperationFilter>();
 });
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+//add authentication
+var authSettings = GetSettings.GetAuthSettings();
+var configuration = builder.Configuration;
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(opt =>
+{
+    opt.SaveToken = true;
+    opt.RequireHttpsMetadata = true;
+    opt.TokenValidationParameters = new TokenValidationParameters()
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateAudience =false,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidateIssuer = false,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Application:Token"])!)
-        };
-    });
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidAudience = configuration["Application:ValidAudience"],
+        ValidIssuer = configuration["Application: ValidIssuer"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Application:Token"]))
+    };
+})
+.AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = authSettings.Google.client_id;
+    googleOptions.ClientSecret = authSettings.Google.client_secret;
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
